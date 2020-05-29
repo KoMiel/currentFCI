@@ -5,6 +5,8 @@ library(rjson)
 library(foreach)
 library(doParallel)
 
+# parallel computing
+
 registerDoParallel()
 
 # function that generates a random tree (used for river network)
@@ -47,8 +49,10 @@ randomNetwork <- function(totalNodes, splitProb) {
     level <- level + 1
   }
   
-  # return the tree
+  # remove redundant stations
   tree <- tree[1:totalNodes,]
+  
+  # return tree
   return(tree)
 }
 
@@ -75,6 +79,7 @@ randomCausalStructure <- function(denseness, nIn, nOut, nMisc, pLat) {
     namesMisc <- vector()
   }
   
+  # generate empty list for latent variables
   namesLat <- list()
 
   # order the names
@@ -88,14 +93,13 @@ randomCausalStructure <- function(denseness, nIn, nOut, nMisc, pLat) {
   colnames(mat) <- names
   
   latCount <- 1
-  
   nVar <- nrow(mat)
   
   # loop over the matrix
   for (i in 1:nVar) {
     for (j in 1:nVar) {
       
-      # lower triangle matrix is set to 0 (so we do not simulate any confounders here)
+      # lower triangle matrix is set to 0
       if (j <= i) {
         next
       
@@ -104,9 +108,11 @@ randomCausalStructure <- function(denseness, nIn, nOut, nMisc, pLat) {
         con <- rbinom(prob = denseness, n = 1, size = 1)
         if (con == 1) {
           mat[j, i] <- 1
-        } else if (!(rownames(mat)[i] %in% namesUp) | !(rownames(mat)[j] %in% namesUp)) {
+        } else if (!(rownames(mat)[i] %in% namesUp) | !(rownames(mat)[j] %in% namesUp)) { # no confounding between upstream variables
           lat <- rbinom(prob = pLat, n = 1, size = 1)
           if (lat == 1) {
+            
+            # generate latent variable
             mat <- rbind(mat, 0)
             rownames(mat)[nrow(mat)] <- paste0("L", latCount)
             mat <- cbind(mat, 0)
@@ -156,7 +162,7 @@ randomCausalStructure <- function(denseness, nIn, nOut, nMisc, pLat) {
     mat[name, partner] <- 1
   }
   
-  # divide values by colsums to ensure that values do not explode in the simulation
+  # divide values by colsums to ensure that values do not diverge in the simulation
   mat <- mat/max(colSums(abs(mat)))
   
   # return causal structure
@@ -292,7 +298,7 @@ foreach (denseness = densenesses) %dopar% {
       network <- randomNetwork(totalNodes = nData, splitProb = splitProb)
       
       # generate a random causal structure
-      structure <- randomCausalStructure(denseness = denseness, nIn = nIn, nOut = nOut, nMisc = nMisc, pLat = 0.01)
+      structure <- randomCausalStructure(denseness = denseness, nIn = nIn, nOut = nOut, nMisc = nMisc, pLat = pLat)
 
       # generate observations
       observations <- simulateData(network = network, structure = structure$mat, namesIn = structure$namesIn)

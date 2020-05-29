@@ -1,16 +1,16 @@
 {
     "nRuns": 100,
     "nDatas": [250, 1000, 4000],
-    "densenesses": [0.1, 0.2, 0.3],
+    "densenesses": [0.2],
     "splitProb": 0.2,
     "nIn": 10,
     "nOut": 5,
     "nMisc": 5,
-    "pLat": 0.03,
+    "pLat": 0.01,
     "p": 0.1,
-    "alphas": [0.0000001,0.000001, 0.00001, 0.0001,0.001, 0.01, 0.1,0.2, 0.3, 0.5],
+    "alphas": [0.0000001,0.000001, 0.00001, 0.0001,0.001, 0.01, 0.05, 0.1,0.2,0.3],
     "namesIn": ["ICOD", "ISpeCon", "ICaCO3", "IP", "ITKN", "ITDS", "ITSS", "IPAFInd"],
     "namesUp": ["UCOD", "USpeCon", "UCaCO3", "UP", "UTKN", "UTDS", "UTSS", "UPAFInd"],
-    "namesOut": ["ILatitu", "ILongit"],
-    "namesMisc": ["IRiffle", "IPool", "IChanne", "ISubstr", "ICover", "IRipari", "IGraMet", "IDraAre"]
+    "namesOut": ["ILatitu", "ILongit", "IGraMet", "IDraAre"],
+    "namesMisc": ["IRiffle", "IPool", "IChanne", "ISubstr", "ICover", "IRipari"]
 }

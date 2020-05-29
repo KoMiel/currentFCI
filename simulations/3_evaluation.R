@@ -4,12 +4,8 @@
 library(rjson)
 library(pcalg)
 
-# import source file
 
-source("../flowFCI.R")
-
-
-# function that calculates the confusion matrix for two causal matrices
+# function that calculates the confusion matrix for two causal adjacency matrices
 # structure 1 is the ESTIMATED matrix
 # structure 2 is the TRUE matrix
 
@@ -92,9 +88,14 @@ confusionMatrix <- function(structure1, structure2, partners, posMisc) {
 }
 
 
+
 # set working directory
 
 setwd("..")
+
+# import source file
+
+source("currentFCI.R")
 
 # read settings file
 
@@ -107,7 +108,7 @@ nDatas <- settings$nDatas
 densenesses <- settings$densenesses
 alphas <- settings$alphas
 
-# generate directory
+# generate directories
 dir.create(path = 'results/', showWarnings = FALSE)
 dir.create(path = 'results/simulations/', showWarnings = FALSE)
 
@@ -115,7 +116,7 @@ dir.create(path = 'results/simulations/', showWarnings = FALSE)
 df <- data.frame(matrix(nrow = length(densenesses) * length(nDatas) * length(alphas), ncol = 3+30))
 names(df) <- c("denseness", "nData", "alpha", rep(c("E_pp", "E_ap", "E_pa", "E_aa", "M_aa", "M_ca", "M_ta", "M_at", "M_ct", "M_tt"), 3))
 
-# generate an empty data frame and set names
+# generate a second empty data frame and set names
 dfMetrics <- data.frame(matrix(nrow = length(densenesses) * length(nDatas) * length(alphas), ncol = 3+18))
 names(dfMetrics) <- c("denseness", "nData", "alpha", rep(c("E_prec", "E_reca", "M_a_prec", "M_a_reca", "M_t_prec", "M_t_reca"), 3))
 
@@ -129,7 +130,9 @@ for (denseness in densenesses) {
 
     for (alpha in alphas) {
 
+      # vector full of 0s
       conf <- integer(30)
+      
       for (i in 1:nRuns) {
         cat(paste(denseness, nData, alpha, i, "\n"))
         
@@ -139,24 +142,27 @@ for (denseness in densenesses) {
         
         # extract all dags/pags
         trueDag <- results[[1]]
-        flowPag <- attributes(results[[2]])$amat
+        currentPag <- attributes(results[[2]])$amat
         fullFciPag <- attributes(results[[3]])$amat
         partFciPag <- attributes(results[[4]])$amat
         
         # only take the part of the larger dags/pags that is to be evaluated
         trueDag <- trueDag[rownames(partFciPag), colnames(partFciPag)]
-        flowPag <- flowPag[rownames(partFciPag), colnames(partFciPag)]
+        currentPag <- currentPag[rownames(partFciPag), colnames(partFciPag)]
         fullFciPag <- fullFciPag[rownames(partFciPag), colnames(partFciPag)]
         
         # calculate the confusion matrices
-        flowConf <- confusionMatrix(flowPag, trueDag)
+        currentConf <- confusionMatrix(currentPag, trueDag)
         fullFciConf <- confusionMatrix(fullFciPag, trueDag)
         partFciConf <- confusionMatrix(partFciPag, trueDag)
         
         # combine everything into one vector and sum up
-        conf <- conf + c(as.vector(flowConf$edges), as.vector(flowConf$marks), as.vector(fullFciConf$edges), as.vector(fullFciConf$marks), as.vector(partFciConf$edges), as.vector(partFciConf$marks))
+        conf <- conf + c(as.vector(currentConf$edges), as.vector(currentConf$marks), as.vector(fullFciConf$edges), as.vector(fullFciConf$marks), as.vector(partFciConf$edges), as.vector(partFciConf$marks))
       }
+      
       df[counter, ] <- c(denseness, nData, alpha, conf)
+
+      # calculate metrics
       dfMetrics[counter, 1:3] <- c(denseness, nData, alpha)
       dfMetrics[counter, 4] <- conf[1]/(conf[1] + conf[3])
       dfMetrics[counter, 5] <- conf[1]/(conf[1] + conf[2])
@@ -181,5 +187,6 @@ for (denseness in densenesses) {
   }
 }
 
+# save the results
 save(df, file = 'results/simulations/confusion.rdata')
 save(dfMetrics, file = 'results/simulations/metrics.rdata')

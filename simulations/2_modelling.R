@@ -6,14 +6,12 @@ library(pcalg)
 library(foreach)
 library(doParallel)
 
+# parallel computing
+
 registerDoParallel()
 
-# import source file
 
-source("../flowFCI.R")
-
-
-# function that converts causal structure to a dag repreentation
+# function that converts causal structure to a dag representation
 
 convertStructure <- function(structure) {
   
@@ -27,7 +25,7 @@ convertStructure <- function(structure) {
   for (i in 1:(ncol(structure))) {
     for (j in 1:(ncol(structure))) {
       
-      # for each cause, we have to add a tail mark (= 3) to the other side of the graph
+      # for each cause, we have to add a tail mark (= 3) to the other side of the edge
       if (structure[i, j] == 2) {
         structure[j, i] <- 3
       }
@@ -48,7 +46,7 @@ latentVariables <- function(data, namesLat) {
   # get all variable names
   names <- names(data)
   
-  # get all remaining variable names and the corresponding observations
+  # get all other variable names and the corresponding observations
   names <- setdiff(names, namesLat)
   data <- data[, names]
  
@@ -88,6 +86,10 @@ marginalize <- function(structure, nodes) {
 # set working directory
 
 setwd("..")
+
+# import source file
+
+source("currentFCI.R")
 
 # read settings file
 
@@ -146,8 +148,8 @@ foreach (denseness = densenesses) %dopar% {
         suffStat <- list(C = cor(mat), n = nrow(mat))
         
         # fit a causal model with standard fci
-        fciModelFull <- fci(m.max = 3, suffStat, indepTest = gaussCItest, alpha = alpha, labels = rownames(suffStat$C), doPdsep = FALSE, conservative = TRUE, verbose = FALSE)        
-  
+        fciModelFull <- fci(m.max = 3, suffStat, indepTest = gaussCItest, alpha = alpha, labels = rownames(suffStat$C), doPdsep = TRUE, conservative = TRUE, verbose = FALSE)        
+
         # find the positions in the data matrix belonging to out of stream and misc variables
         posOut <- which(rownames(suffStat$C) %in% structure$namesOut)
         posMisc <- which(rownames(suffStat$C) %in% structure$namesMisc)
@@ -162,9 +164,9 @@ foreach (denseness = densenesses) %dopar% {
           j <- j + 1
         }      
   
-        # fit a causal model with flow FCI
-        flowFciModel <- flowFci(m.max = 3, suffStat, indepTest = gaussCItest, alpha = alpha, labels = rownames(suffStat$C), doPdsep = TRUE, conservative = TRUE, verbose = FALSE, partners = posPartners, posOut = posOut, posRem = posMisc)
-        
+        # fit a causal model with current FCI
+        currentFciModel <- currentFci(m.max = 3, suffStat, indepTest = gaussCItest, alpha = alpha, labels = rownames(suffStat$C), doPdsep = TRUE, conservative = TRUE, verbose = FALSE, partners = posPartners, posOut = posOut, posRem = posMisc)
+
         # eliminate out of stream and upstream variables from data
         inObservations <- latObservations[,c(structure$namesIn, structure$namesMisc)]
         inMat <- as.matrix(inObservations)
@@ -173,7 +175,7 @@ foreach (denseness = densenesses) %dopar% {
         # fit a causal model with standard FCI on limited data set
         fciModelPart <- fci(m.max = 3, suffStat, indepTest = gaussCItest, alpha = alpha, labels = rownames(suffStat$C), doPdsep = TRUE, conservative = TRUE, verbose = FALSE)  
         
-        results <- list(latDag, flowFciModel, fciModelFull, fciModelPart)
+        results <- list(latDag, currentFciModel, fciModelFull, fciModelPart)
         filename <- paste0('models/simulations/', denseness, "/", nData, "/", alpha, "/model_", i, ".rdata")
         save(results, file = filename)
       }

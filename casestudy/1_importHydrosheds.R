@@ -94,9 +94,9 @@ hydrosheds_cropped <- st_crop(x = hydrosheds, box) # cut the part out where ther
 # generate a plot of locations and hydrosheds
 
 pdf('../../plots/casestudy/locations.pdf')
-plot(hydrosheds_cropped$geometry, col = 'blue', xlim = c(box[[1]], box[[3]]), ylim = c(box[[2]], box[[4]]))#, axes = TRUE)
+plot(hydrosheds_cropped$geometry, col = 'black', xlim = c(box[[1]], box[[3]]), ylim = c(box[[2]], box[[4]]))#, axes = TRUE)
 par(new = TRUE)
-plot(datapoints$geometry, pch = 4, cex = 0.5, xlim = c(box[[1]], box[[3]]), ylim = c(box[[2]], box[[4]]))#, axes = TRUE)
+plot(datapoints$geometry, pch = 4, col = 'red', cex = 0.5, xlim = c(box[[1]], box[[3]]), ylim = c(box[[2]], box[[4]]))#, axes = TRUE)
 dev.off()
 # empty data table for river segments
 

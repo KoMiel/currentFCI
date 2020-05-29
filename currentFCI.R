@@ -270,20 +270,20 @@ currentFci <- function(suffStat, indepTest, alpha, labels, p,
     mat <- as(skel@graph, "matrix")
     
     # orient from background knowledge
-#    mat[posOut, partners[,2]][mat[posOut, partners[,2]] == 1] <- 2
-#    mat[posOut, posRem][mat[posOut, posRem] == 1] <- 2
+    mat[posOut, partners[,2]][mat[posOut, partners[,2]] == 1] <- 2
+    mat[posOut, posRem][mat[posOut, posRem] == 1] <- 2
   
-#    mat[partners[,1], partners[,2]][mat[partners[,1], partners[,2]] == 1] <- 2
-#    mat[partners[,1], posRem][mat[partners[,1], posRem] == 1] <- 2
+    mat[partners[,1], partners[,2]][mat[partners[,1], partners[,2]] == 1] <- 2
+    mat[partners[,1], posRem][mat[partners[,1], posRem] == 1] <- 2
   
-#    mat[posOut, partners[,1]][mat[posOut, partners[,1]] == 1] <- 2
-#    mat[partners[,1], posOut][mat[partners[,1], posOut] == 1] <- 2
+    mat[posOut, partners[,1]][mat[posOut, partners[,1]] == 1] <- 2
+    mat[partners[,1], posOut][mat[partners[,1], posOut] == 1] <- 2
 
-#    mat[posRem, posBio][mat[posRem, posBio] == 1] <- 2
-#    mat[partners[,2], posBio][mat[partners[,2], posBio] == 1] <- 2
+    mat[posRem, posBio][mat[posRem, posBio] == 1] <- 2
+    mat[partners[,2], posBio][mat[partners[,2], posBio] == 1] <- 2
 
     for (i in 1:nrow(partners)) {
-#        mat[partners[i,1], partners[i,2]] <- 2
+        mat[partners[i,1], partners[i,2]] <- 2
         mat[partners[i,2], partners[i,1]] <- 3
     }
     

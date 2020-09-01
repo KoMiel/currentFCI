@@ -110,7 +110,10 @@ alphas <- settings$alphas
 
 # generate directories
 dir.create(path = 'results/', showWarnings = FALSE)
-dir.create(path = 'results/simulations/', showWarnings = FALSE)
+
+for (noise in 1:6) {
+
+dir.create(path = paste0('results/simulations', noise), showWarnings = FALSE)
 
 # generate an empty data frame and set names
 df <- data.frame(matrix(nrow = length(densenesses) * length(nDatas) * length(alphas), ncol = 3+30))
@@ -137,7 +140,7 @@ for (denseness in densenesses) {
         cat(paste(denseness, nData, alpha, i, "\n"))
         
         # load the data
-        filename <- paste0('models/simulations/', denseness, "/", nData, "/", alpha, "/model_", i, ".rdata")
+        filename <- paste0('models/simulations', noise, '/', denseness, "/", nData, "/", alpha, "/model_", i, ".rdata")
         load(file = filename)
         
         # extract all dags/pags
@@ -188,5 +191,7 @@ for (denseness in densenesses) {
 }
 
 # save the results
-save(df, file = 'results/simulations/confusion.rdata')
-save(dfMetrics, file = 'results/simulations/metrics.rdata')
+save(df, file = paste0('results/simulations', noise, '/confusion.rdata'))
+save(dfMetrics, file = paste0('results/simulations', noise, '/metrics.rdata'))
+
+}

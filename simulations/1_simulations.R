@@ -21,7 +21,7 @@ randomNetwork <- function(totalNodes, splitProb) {
   
   # first measurement station
   tree[1,] <- c(1, NA, 1)
-  
+
   # set up measurement station index and level
   nodeInd <- 2
   level <- 1
@@ -31,13 +31,12 @@ randomNetwork <- function(totalNodes, splitProb) {
     
     # get all stations on the current level
     current <- tree[which(tree$Level == level),]
-    
     # loop over stations
     for (node in 1:nrow(current)){
       
       # randomly decide whether there is a split in the branch
       binom <- rbinom(n = 1, size = 1, prob = splitProb)
-
+      
       # add one or two childs in the tree
       for (childs in 1:(1 + binom)) {
         tree[nodeInd,] <- c(nodeInd, current[node,1], level + 1)
@@ -51,10 +50,28 @@ randomNetwork <- function(totalNodes, splitProb) {
   
   # remove redundant stations
   tree <- tree[1:totalNodes,]
+
+  nodeInd <- totalNodes + 1
+  # generate a copy
+  treeCopy <- tree
   
-  # return tree
+  # add merges
+  for (row in 2:nrow(treeCopy)) {
+    binom <- rbinom(n = 1, size = 1, prob = 2*splitProb)
+    
+    if (binom == 1){
+      prevLevel <- treeCopy[treeCopy$Level == treeCopy[row, "Level"] - 1,]
+      rows <- nrow(prevLevel)
+      selectedRow <- prevLevel[sample(rows, 1), ]
+      tree[nodeInd,] <- c(row, selectedRow$Node, selectedRow$Level + 1)
+      nodeInd <- nodeInd + 1
+    }
+  }
+
+  # return structure
   return(tree)
 }
+
 
 # function that generates a random causal structure
 
@@ -171,10 +188,10 @@ randomCausalStructure <- function(denseness, nIn, nOut, nMisc, pLat) {
 
 # function that generates measurement data from station network and causal structure
 
-simulateData <- function(network, structure, namesIn) {
+simulateData <- function(network, structure, namesIn, totalNodes) {
   
   # generate an empty data frame for data
-  data <- data.frame(matrix(nrow = nrow(network), ncol = ncol(structure) + 1, 0))
+  data <- data.frame(matrix(nrow = totalNodes, ncol = ncol(structure) + 1, 0))
   
   # get variable names
   names <- colnames(structure)
@@ -192,13 +209,13 @@ simulateData <- function(network, structure, namesIn) {
   namesRest <- setdiff(names, namesUp)
 
   # loop over all measurement stations
-  for (i in 1:nrow(network)) {
+  for (i in totalNodes:1) {
     
     # set the station
-    data[i, "Station"] <- network$Node[i]
+    data[i, "Station"] <- i
     
     # if there are no upstream stations
-    if (is.na(network$Node[network$Parent == network$Node[i]])){
+    if (is.na(network$Node[network$Parent == i])){
       
       # sample the upstream variables from normal distribution
       for (name in namesUp) {
@@ -207,7 +224,7 @@ simulateData <- function(network, structure, namesIn) {
       
       # if not, then select the upstream stations and get the data
     } else {
-      upstreamStations <- network$Node[network$Parent == network$Node[i]]
+      upstreamStations <- network$Node[network$Parent == i]
       upstreamStations <- upstreamStations[!is.na(upstreamStations)]
       dataUpstream <- data[data$Station %in% upstreamStations,]
 
@@ -246,6 +263,23 @@ simulateData <- function(network, structure, namesIn) {
   return(data)
 }
 
+addNoise <- function(observations, structure, namesIn, noiseLevel){
+
+  # get variable names
+  names <- colnames(structure)
+    
+  # generate upstream names from instream ones
+  namesUp <- paste0("U", substr(namesIn, start = 2, stop = nchar(namesIn)))
+ 
+  # add noise for upstream variables
+  for (name in namesUp) {
+    observations[,name] <- observations[,name] + rnorm(n = nrow(observations), sd = noiseLevel)
+  }
+
+  # return data frame
+  return(observations)
+}
+
 # directory for data
 
 dir.create(path = "../data/", showWarnings = FALSE)
@@ -282,6 +316,7 @@ nIn <- settings$nIn
 nOut <- settings$nOut
 nMisc <- settings$nMisc
 pLat <- settings$pLat
+noiseLevel <- settings$noiseLevel
 
 # loop over conditions and generate data (in parallel)
 
@@ -301,10 +336,17 @@ foreach (denseness = densenesses) %dopar% {
       structure <- randomCausalStructure(denseness = denseness, nIn = nIn, nOut = nOut, nMisc = nMisc, pLat = pLat)
 
       # generate observations
-      observations <- simulateData(network = network, structure = structure$mat, namesIn = structure$namesIn)
+      observations <- simulateData(network = network, structure = structure$mat, namesIn = structure$namesIn, totalNodes = nData)
     
+      # generate noisy observations
+      noisyObservations1 <- addNoise(observations = observations, namesIn = structure$namesIn, structure = structure$mat, noiseLevel[1])
+      noisyObservations2 <- addNoise(observations = observations, namesIn = structure$namesIn, structure = structure$mat, noiseLevel[2])
+      noisyObservations3 <- addNoise(observations = observations, namesIn = structure$namesIn, structure = structure$mat, noiseLevel[3])
+      noisyObservations4 <- addNoise(observations = observations, namesIn = structure$namesIn, structure = structure$mat, noiseLevel[4])
+      noisyObservations5 <- addNoise(observations = observations, namesIn = structure$namesIn, structure = structure$mat, noiseLevel[5])
+
       # combine to data object
-      data <- list(network, structure, observations)
+      data <- list(network, structure, observations, noisyObservations1, noisyObservations2, noisyObservations3, noisyObservations4, noisyObservations5)
       
       # save the data
       filename <- paste0(denseness, "/", nData, "/data_", i, ".rdata")
